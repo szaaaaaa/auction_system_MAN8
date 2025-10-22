@@ -1,0 +1,55 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 SLBrowser/9.0.6.8151 SLBChan/115 SLBVPV/64-bit" version="28.2.7">
+  <diagram name="Auction ER" id="-8ZqSecMvcDT0l8vdErD">
+    <mxGraphModel dx="1165" dy="747" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="V6aZq2l_zheKsGPByiER-1" value="USER&#xa;PK user_id&#xa;email (UNIQUE)&#xa;password_hash&#xa;display_name (UNIQUE)&#xa;role&#xa;status&#xa;created_at" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="60" y="60" width="220" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="V6aZq2l_zheKsGPByiER-2" value="AUCTION&#xa;PK auction_id&#xa;FK seller_id → USER.user_id&#xa;title&#xa;description&#xa;start_price&#xa;reserve_price&#xa;buyout_price&#xa;min_increment&#xa;start_time&#xa;end_time&#xa;status&#xa;winner_bid_id (nullable, FK → BID.bid_id)" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="360" y="60" width="300" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="V6aZq2l_zheKsGPByiER-3" value="BID&#xa;PK bid_id&#xa;FK auction_id → AUCTION.auction_id&#xa;FK bidder_id → USER.user_id&#xa;amount&#xa;bid_time" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="720" y="80" width="260" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="V6aZq2l_zheKsGPByiER-4" value="WATCHLIST&#xa;PK/FK user_id → USER.user_id&#xa;PK/FK auction_id → AUCTION.auction_id&#xa;created_at" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="390" y="340" width="260" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="V6aZq2l_zheKsGPByiER-5" value="CATEGORY&#xa;PK category_id&#xa;name (UNIQUE)&#xa;parent_id (nullable, FK → CATEGORY.category_id)" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="60" y="340" width="260" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="V6aZq2l_zheKsGPByiER-6" value="LISTING_CATEGORY&#xa;PK/FK auction_id → AUCTION.auction_id&#xa;PK/FK category_id → CATEGORY.category_id" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="60" y="500" width="300" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="V6aZq2l_zheKsGPByiER-7" value="IMAGE&#xa;PK image_id&#xa;FK auction_id → AUCTION.auction_id&#xa;url_or_path&#xa;is_primary&#xa;uploaded_at" style="rounded=0;whiteSpace=wrap;html=1;strokeWidth=1;fillColor=#cce6ff;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="720" y="260" width="260" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="V6aZq2l_zheKsGPByiER-8" style="endArrow=block;endFill=1;strokeWidth=1;" edge="1" parent="1" source="V6aZq2l_zheKsGPByiER-1" target="V6aZq2l_zheKsGPByiER-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="V6aZq2l_zheKsGPByiER-9" style="endArrow=block;endFill=1;strokeWidth=1;" edge="1" parent="1" source="V6aZq2l_zheKsGPByiER-2" target="V6aZq2l_zheKsGPByiER-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="V6aZq2l_zheKsGPByiER-10" style="endArrow=block;endFill=1;dashed=1;strokeWidth=1;" edge="1" parent="1" source="V6aZq2l_zheKsGPByiER-1" target="V6aZq2l_zheKsGPByiER-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="V6aZq2l_zheKsGPByiER-11" style="endArrow=block;endFill=1;strokeWidth=1;" edge="1" parent="1" source="V6aZq2l_zheKsGPByiER-1" target="V6aZq2l_zheKsGPByiER-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="V6aZq2l_zheKsGPByiER-12" style="endArrow=block;endFill=1;strokeWidth=1;" edge="1" parent="1" source="V6aZq2l_zheKsGPByiER-2" target="V6aZq2l_zheKsGPByiER-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="V6aZq2l_zheKsGPByiER-13" style="endArrow=block;endFill=1;strokeWidth=1;" edge="1" parent="1" source="V6aZq2l_zheKsGPByiER-2" target="V6aZq2l_zheKsGPByiER-7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="V6aZq2l_zheKsGPByiER-14" style="endArrow=block;endFill=1;strokeWidth=1;" edge="1" parent="1" source="V6aZq2l_zheKsGPByiER-5" target="V6aZq2l_zheKsGPByiER-6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="V6aZq2l_zheKsGPByiER-15" style="endArrow=block;endFill=1;strokeWidth=1;" edge="1" parent="1" source="V6aZq2l_zheKsGPByiER-2" target="V6aZq2l_zheKsGPByiER-6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

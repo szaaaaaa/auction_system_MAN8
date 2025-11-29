@@ -1,3 +1,4 @@
+<?php require("db.php"); ?>
 <?php include_once("header.php")?>
 <?php require("utilities.php")?>
 
@@ -8,11 +9,35 @@
   // TODO: Use item_id to make a query to the database.
 
   // DELETEME: For now, using placeholder data.
-  $title = "Placeholder title";
-  $description = "Description blah blah blah";
-  $current_price = 30.50;
-  $num_bids = 1;
-  $end_time = new DateTime('2020-11-02T00:00:00');
+$sql = "
+SELECT A.auctionID, A.endDate, A.startingPrice,
+       I.itemName, I.description
+FROM Auction A
+JOIN Item I ON A.itemID = I.itemID
+WHERE A.auctionID = ?
+";
+
+$stmt = $pdo->prepare($sql);
+$stmt->execute([$item_id]);
+$auction = $stmt->fetch();
+
+if (!$auction) die("Auction not found.");
+
+$title = $auction['itemName'];
+$description = $auction['description'];
+$end_time = new DateTime($auction['endDate']);
+
+// 获取当前出价
+$sql = "
+SELECT MAX(bidAmount) AS max_bid, COUNT(*) AS num_bids
+FROM Bid WHERE auctionID = ?
+";
+$stmt = $pdo->prepare($sql);
+$stmt->execute([$item_id]);
+$row = $stmt->fetch();
+
+$current_price = $row['max_bid'] ?? $auction['startingPrice'];
+$num_bids = $row['num_bids'];
 
   // TODO: Note: Auctions that have ended may pull a different set of data,
   //       like whether the auction ended in a sale or was cancelled due
@@ -73,7 +98,8 @@
      This auction ended <?php echo(date_format($end_time, 'j M H:i')) ?>
      <!-- TODO: Print the result of the auction here? -->
 <?php else: ?>
-     Auction ends <?php echo(date_format($end_time, 'j M H:i') . $time_remaining) ?></p>  
+
+    <p>Auction ends <?php echo(date_format($end_time, 'j M H:i') . $time_remaining) ?></p>  
     <p class="lead">Current bid: £<?php echo(number_format($current_price, 2)) ?></p>
 
     <!-- Bidding form -->
@@ -82,10 +108,21 @@
         <div class="input-group-prepend">
           <span class="input-group-text">£</span>
         </div>
-	    <input type="number" class="form-control" id="bid">
+	    <input type="number"
+       class="form-control"
+       name="bid_amount"
+       step="0.01"
+       min="<?php echo($current_price + 0.01); ?>"
+       required>
+
+<input type="hidden"
+       name="auction_id"
+       value="<?php echo($item_id); ?>">
+
       </div>
       <button type="submit" class="btn btn-primary form-control">Place bid</button>
     </form>
+
 <?php endif ?>
 
   

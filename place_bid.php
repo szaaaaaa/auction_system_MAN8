@@ -1,53 +1,69 @@
 <?php
+require_once "utilities.php";
 session_start();
-require("db.php");
+$pdo = get_db();
 
-// 检查 POST 是否存在
-if (!isset($_POST['bid_amount'], $_POST['auction_id'])) {
-    die("Invalid request.");
+// 只允许 buyer 出价
+if (!isset($_SESSION['user_id']) || $_SESSION['account_type'] !== 'buyer') {
+    die("You must log in as a buyer to place a bid.");
 }
 
-$bid_amount = floatval($_POST['bid_amount']);
-$auction_id = intval($_POST['auction_id']);
+// 接收参数
+$auction_id = $_POST['auction_id'] ?? null;
+$bid_amount = $_POST['bid_amount'] ?? null;
+$buyer_id   = $_SESSION['user_id'];
 
-// 测试阶段：如果你们没做登录系统，先用 buyerID = 1
-$buyer_id = $_SESSION['user_id'] ?? 1;
+if (!$auction_id || !$bid_amount || !is_numeric($bid_amount)) {
+    die("Invalid bid input.");
+}
 
-// 1. 查询 auction 是否存在 + 是否结束
-$stmt = $pdo->prepare("SELECT endDate, startingPrice FROM Auction WHERE auctionID = ?");
+// 开启事务
+$pdo->beginTransaction();
+
+// 锁 Auction（防止并发出价）
+$stmt = $pdo->prepare("
+SELECT endDate FROM Auction
+WHERE auctionID = ?
+FOR UPDATE
+");
 $stmt->execute([$auction_id]);
 $auction = $stmt->fetch();
 
 if (!$auction) {
+    $pdo->rollBack();
     die("Auction not found.");
 }
 
-$now = new DateTime();
-$end = new DateTime($auction['endDate']);
-
-if ($now > $end) {
-    die("Auction has ended.");
+// 判断是否过期
+if (new DateTime() > new DateTime($auction['endDate'])) {
+    $pdo->rollBack();
+    die("Auction has already ended.");
 }
 
-// 2. 获取当前最高价
-$stmt = $pdo->prepare("SELECT MAX(bidAmount) AS max_bid FROM Bid WHERE auctionID = ?");
-$stmt->execute([$auction_id]);
-$row = $stmt->fetch();
-
-$current_max = $row['max_bid'] ?? $auction['startingPrice'];
-
-// 3. 校验新出价
-if ($bid_amount <= $current_max) {
-    die("Your bid must be higher than £" . $current_max);
-}
-
-// 4. 插入 Bid
+// 取得当前最高价
 $stmt = $pdo->prepare("
-    INSERT INTO Bid (auctionID, buyerID, bidAmount, bidTime)
-    VALUES (?, ?, ?, NOW())
+SELECT MAX(bidAmount)
+FROM Bid WHERE auctionID = ?
+");
+$stmt->execute([$auction_id]);
+$current_max = $stmt->fetchColumn();
+
+// 校验新出价
+if ($current_max !== null && $bid_amount <= $current_max) {
+    $pdo->rollBack();
+    die("Your bid must be higher than the current highest bid.");
+}
+
+// 插入新 bid
+$stmt = $pdo->prepare("
+INSERT INTO Bid (auctionID, buyerID, bidAmount, bidTime)
+VALUES (?, ?, ?, NOW())
 ");
 $stmt->execute([$auction_id, $buyer_id, $bid_amount]);
 
-// 5. 返回 listing 页面
-header("Location: listing.php?item_id=$auction_id");
+// 提交事务
+$pdo->commit();
+
+// 回跳页面
+header("Location: listing.php?item_id=".$auction_id);
 exit;

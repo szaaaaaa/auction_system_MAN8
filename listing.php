@@ -1,6 +1,8 @@
-<?php require("db.php"); ?>
-<?php include_once("header.php")?>
-<?php require("utilities.php")?>
+<?php
+require_once "utilities.php";
+$pdo = get_db();
+include_once("header.php");
+?>
 
 <?php
   // Get info from the URL:
@@ -95,8 +97,88 @@ $num_bids = $row['num_bids'];
 
     <p>
 <?php if ($now > $end_time): ?>
-     This auction ended <?php echo(date_format($end_time, 'j M H:i')) ?>
-     <!-- TODO: Print the result of the auction here? -->
+
+<?php
+// ===== AUTO END AUCTION & GENERATE TRANSACTION =====
+
+// 查询是否已有 Transaction
+$stmt = $pdo->prepare("SELECT * FROM Transaction WHERE auctionID=?");
+$stmt->execute([$item_id]);
+$transaction = $stmt->fetch();
+
+if (!$transaction) {
+
+    // 找最高 bid
+    $stmt = $pdo->prepare("
+        SELECT buyerID, bidAmount
+        FROM Bid
+        WHERE auctionID = ?
+        ORDER BY bidAmount DESC
+        LIMIT 1
+    ");
+    $stmt->execute([$item_id]);
+    $winner = $stmt->fetch();
+
+    if ($winner) {
+
+        // 创建 Transaction
+        $stmt = $pdo->prepare("
+            INSERT INTO Transaction 
+            (auctionID, buyerID, finalPrice, date, status)
+            VALUES (?, ?, ?, NOW(), 'COMPLETED')
+        ");
+        $stmt->execute([
+            $item_id,
+            $winner['buyerID'],
+            $winner['bidAmount']
+        ]);
+
+        // 更新 Auction 为 ENDED
+        $stmt = $pdo->prepare("UPDATE Auction SET status='ENDED' WHERE auctionID=?");
+        $stmt->execute([$item_id]);
+    }
+}
+
+// ===== DISPLAY RESULT =====
+// ===== DISPLAY RESULT =====
+
+if ($transaction) {
+
+    // ✅ 核心原则：有 Transaction，就以它为权威结果
+    echo "<div class='alert alert-success'>
+            Winner: Buyer #{$transaction['buyerID']}<br>
+            Final Price: £{$transaction['finalPrice']}
+          </div>";
+
+}
+else {
+
+    // 没有 Transaction，才去 Bid 表推测当前 winner
+    $stmt = $pdo->prepare("
+        SELECT buyerID, bidAmount
+        FROM Bid
+        WHERE auctionID = ?
+        ORDER BY bidAmount DESC
+        LIMIT 1
+    ");
+    $stmt->execute([$item_id]);
+    $winner = $stmt->fetch();
+
+    if ($winner) {
+        echo "<div class='alert alert-info'>
+                Current highest bid by Buyer #{$winner['buyerID']}<br>
+                £{$winner['bidAmount']}
+              </div>";
+    }
+    else {
+        echo "<div class='alert alert-warning'>
+                No bids yet.
+              </div>";
+    }
+
+}
+?>
+
 <?php else: ?>
 
     <p>Auction ends <?php echo(date_format($end_time, 'j M H:i') . $time_remaining) ?></p>  

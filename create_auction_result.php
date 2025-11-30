@@ -6,7 +6,9 @@
 
 // This function takes the form data and adds the new auction to the database.
 
-    require_once('database_connect.php');
+    require_once("utilities.php");
+    $pdo = get_db();
+    
 
     if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
@@ -16,65 +18,65 @@
     $startPrice = $_POST['auctionStartPrice'] ?? '';
     $reservePrice = $_POST['auctionReservePrice'] ?? '';
     $endDate = $_POST['auctionEndDate'] ?? '';
-
-    
-    // Set start date to now
     $startDate = date(format: 'Y-m-d H:i:s');
-
-    
-    // Retrieve current user from session (Seller)
     $username = $_SESSION['username'] ?? 'test_seller'; 
 
     try {
-        // 1. Get the Seller's User ID
+        $sqlUser = "SELECT u.userID 
+                    FROM User u 
+                    JOIN Seller s ON u.userID = s.userID 
+                    WHERE u.username = :username 
+                    LIMIT 1";
         $stmtUser = $pdo->prepare("SELECT userID FROM User WHERE username = :username LIMIT 1");
         $stmtUser->execute([':username' => $username]);
         $userRow = $stmtUser->fetch(PDO::FETCH_ASSOC);
+        if ($userRow) {
+            $sellerID = $userRow['userID'];
+        } else {
+            throw new Exception(message: "Current user is not a registered seller.");
+        }
 
-        // Fallback for testing if user is not found (Assumes ID 1 exists)
-        $sellerID = $userRow ? $userRow['userID'] : 1;
-
-        // 2. Data Validation
+       
         if (empty($title) || empty($categoryID) || empty($startPrice) || empty($endDate)) {
-            throw new Exception("Please fill in all required fields.");
+            throw new Exception(message: "Please fill in all required fields.");
         }
         
-        // Ensure Category ID is numeric (The starter code had text values like 'fill')
-        if (!is_numeric($categoryID)) {
-             throw new Exception("Invalid Category selected. Please ensure the dropdown sends a numeric ID.");
+      
+        if (!is_numeric(value: $categoryID)) {
+             throw new Exception(message: "Invalid Category selected. ");
         }
-        // --- Step A: Insert into Item table ---
+
         $pdo->beginTransaction();
         $sqlItem = "INSERT INTO Item (itemName, description, categoryID, sellerID) 
                     VALUES (:itemName, :description, :categoryID, :sellerID)";
-        $stmtItem = $pdo->prepare($sqlItem);
+        $stmtItem = $pdo->prepare(query: $sqlItem);
         $stmtItem->execute([
             ':itemName' => $title,
             ':description' => $details,
             ':categoryID' => $categoryID,
             ':sellerID' => $sellerID
         ]);
-        // Get the ID of the item we just created
+
         $newItemID = $pdo->lastInsertId();
 
-        // --- Step B: Insert into Auction table ---
-        // Schema: auctionID, itemID, startDate, endDate, startingPrice, reservePrice, status
-        
-        // Handle optional reserve price
+        // Insert into Auction table ---
         $reservePriceValue = empty($reservePrice) ? 0 : $reservePrice;
+        $status = 'ACTIVE'; 
+        $isAnonymous = isset($_POST['isAnonymous']) ? 1 : 0; 
 
-        $sqlAuction = "INSERT INTO Auction (itemID, startDate, endDate, startingPrice, reservePrice, status) 
-                       VALUES (:itemID, :startDate, :endDate, :startingPrice, :reservePrice, 'active')";
+        $sqlAuction = "INSERT INTO Auction (itemID, startDate, endDate, startingPrice, reservePrice, status, isAnonymous) 
+                       VALUES (:itemID, :startDate, :endDate, :startingPrice, :reservePrice, 'active', :isAnonymous )";
         $stmtAuction = $pdo->prepare($sqlAuction);
         $stmtAuction->execute([
             ':itemID' => $newItemID,
             ':startDate' => $startDate,
             ':endDate' => $endDate,
             ':startingPrice' => $startPrice,
-            ':reservePrice' => $reservePriceValue
+            ':reservePrice' => $reservePriceValue,
+            ':isAnonymous' => $isAnonymous
         ]);
 
-        // Commit the transaction (save changes)
+        // Commit the transaction
         $pdo->commit();
 
         // Success Message

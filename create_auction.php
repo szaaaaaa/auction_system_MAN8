@@ -1,5 +1,5 @@
 <?php include_once("header.php");
-require_once("database_connect.php");
+require_once("utilities.php");
 ?>
 
 <?php
@@ -47,6 +47,7 @@ require_once("database_connect.php");
             <select class="form-control" id="auctionCategory" name="auctionCategory">
              <?php
                 try {
+                    $pdo = get_db();
                     $sql = "SELECT * FROM Category";
                     $stmt = $pdo->query($sql);
                     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -89,6 +90,18 @@ require_once("database_connect.php");
           <div class="col-sm-10">
             <input type="datetime-local" class="form-control" id="auctionEndDate" name="auctionEndDate">
             <small id="endDateHelp" class="form-text text-muted"><span class="text-danger">* Required.</span> Day for the auction to end.</small>
+          </div>
+        </div>
+        <div class="form-group row">
+          <div class="col-sm-2"></div>
+          <div class="col-sm-10">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="isAnonymous" name="isAnonymous" value="1">
+              <label class="form-check-label" for="isAnonymous">
+                Make this auction anonymous (匿名发布)
+              </label>
+              <small class="form-text text-muted">If checked, your username will be hidden from bidders.</small>
+            </div>
           </div>
         </div>
         <button type="submit" class="btn btn-primary form-control">Create Auction</button>

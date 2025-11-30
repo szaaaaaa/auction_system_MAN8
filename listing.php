@@ -1,5 +1,8 @@
-<?php include_once("header.php")?>
-<?php require("utilities.php")?>
+<?php
+require_once "utilities.php";
+$pdo = get_db();
+include_once("header.php");
+?>
 
 <?php
   // Get info from the URL:
@@ -8,11 +11,35 @@
   // TODO: Use item_id to make a query to the database.
 
   // DELETEME: For now, using placeholder data.
-  $title = "Placeholder title";
-  $description = "Description blah blah blah";
-  $current_price = 30.50;
-  $num_bids = 1;
-  $end_time = new DateTime('2020-11-02T00:00:00');
+$sql = "
+SELECT A.auctionID, A.endDate, A.startingPrice,
+       I.itemName, I.description
+FROM Auction A
+JOIN Item I ON A.itemID = I.itemID
+WHERE A.auctionID = ?
+";
+
+$stmt = $pdo->prepare($sql);
+$stmt->execute([$item_id]);
+$auction = $stmt->fetch();
+
+if (!$auction) die("Auction not found.");
+
+$title = $auction['itemName'];
+$description = $auction['description'];
+$end_time = new DateTime($auction['endDate']);
+
+// 获取当前出价
+$sql = "
+SELECT MAX(bidAmount) AS max_bid, COUNT(*) AS num_bids
+FROM Bid WHERE auctionID = ?
+";
+$stmt = $pdo->prepare($sql);
+$stmt->execute([$item_id]);
+$row = $stmt->fetch();
+
+$current_price = $row['max_bid'] ?? $auction['startingPrice'];
+$num_bids = $row['num_bids'];
 
   // TODO: Note: Auctions that have ended may pull a different set of data,
   //       like whether the auction ended in a sale or was cancelled due
@@ -70,10 +97,91 @@
 
     <p>
 <?php if ($now > $end_time): ?>
-     This auction ended <?php echo(date_format($end_time, 'j M H:i')) ?>
-     <!-- TODO: Print the result of the auction here? -->
+
+<?php
+// ===== AUTO END AUCTION & GENERATE TRANSACTION =====
+
+// 查询是否已有 Transaction
+$stmt = $pdo->prepare("SELECT * FROM Transaction WHERE auctionID=?");
+$stmt->execute([$item_id]);
+$transaction = $stmt->fetch();
+
+if (!$transaction) {
+
+    // 找最高 bid
+    $stmt = $pdo->prepare("
+        SELECT buyerID, bidAmount
+        FROM Bid
+        WHERE auctionID = ?
+        ORDER BY bidAmount DESC
+        LIMIT 1
+    ");
+    $stmt->execute([$item_id]);
+    $winner = $stmt->fetch();
+
+    if ($winner) {
+
+        // 创建 Transaction
+        $stmt = $pdo->prepare("
+            INSERT INTO Transaction 
+            (auctionID, buyerID, finalPrice, date, status)
+            VALUES (?, ?, ?, NOW(), 'COMPLETED')
+        ");
+        $stmt->execute([
+            $item_id,
+            $winner['buyerID'],
+            $winner['bidAmount']
+        ]);
+
+        // 更新 Auction 为 ENDED
+        $stmt = $pdo->prepare("UPDATE Auction SET status='ENDED' WHERE auctionID=?");
+        $stmt->execute([$item_id]);
+    }
+}
+
+// ===== DISPLAY RESULT =====
+// ===== DISPLAY RESULT =====
+
+if ($transaction) {
+
+    // ✅ 核心原则：有 Transaction，就以它为权威结果
+    echo "<div class='alert alert-success'>
+            Winner: Buyer #{$transaction['buyerID']}<br>
+            Final Price: £{$transaction['finalPrice']}
+          </div>";
+
+}
+else {
+
+    // 没有 Transaction，才去 Bid 表推测当前 winner
+    $stmt = $pdo->prepare("
+        SELECT buyerID, bidAmount
+        FROM Bid
+        WHERE auctionID = ?
+        ORDER BY bidAmount DESC
+        LIMIT 1
+    ");
+    $stmt->execute([$item_id]);
+    $winner = $stmt->fetch();
+
+    if ($winner) {
+        echo "<div class='alert alert-info'>
+                Current highest bid by Buyer #{$winner['buyerID']}<br>
+                £{$winner['bidAmount']}
+              </div>";
+    }
+    else {
+        echo "<div class='alert alert-warning'>
+                No bids yet.
+              </div>";
+    }
+
+}
+?>
+
 <?php else: ?>
-     Auction ends <?php echo(date_format($end_time, 'j M H:i') . $time_remaining) ?></p>  
+
+    <p>Auction ends <?php echo(date_format($end_time, 'j M H:i') . $time_remaining) ?></p>  
     <p class="lead">Current bid: £<?php echo(number_format($current_price, 2)) ?></p>
 
     <!-- Bidding form -->
@@ -82,10 +190,21 @@
         <div class="input-group-prepend">
           <span class="input-group-text">£</span>
         </div>
-	    <input type="number" class="form-control" id="bid">
+	    <input type="number"
+       class="form-control"
+       name="bid_amount"
+       step="0.01"
+       min="<?php echo($current_price + 0.01); ?>"
+       required>
+
+<input type="hidden"
+       name="auction_id"
+       value="<?php echo($item_id); ?>">
+
       </div>
       <button type="submit" class="btn btn-primary form-control">Place bid</button>
     </form>
+
 <?php endif ?>
 
   

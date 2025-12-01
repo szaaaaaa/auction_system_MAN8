@@ -13,9 +13,8 @@
       $buyer_id = $_SESSION['user_id'];
       $pdo = get_db();
 
-      // 查询这个用户出过价的拍卖
-      //  - b_user：当前用户的出价记录，用来筛选「哪些 auction 他参与过」
-      //  - b_all：该 auction 的所有出价，用来算当前最高价和总出价次数
+      //  b_user：Retrieve the list of auctions participated in by the current user
+      //  b_all：All bids for this auction, used to calculate the current highest bid and the total number of bids
       $sql = "
           SELECT 
               i.itemID,

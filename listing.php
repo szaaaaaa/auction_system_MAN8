@@ -108,7 +108,7 @@ function addToWatchlist(button) {
   // Sends item ID as an argument to that function.
   $.ajax('watchlist_funcs.php', {
     type: "POST",
-    data: {functionname: 'add_to_watchlist', arguments: [<?php echo($item_id);?>]},
+    data: {functionname: 'add_to_watchlist', arguments: <?php echo($item_id);?>},
 
     success: 
       function (obj, textstatus) {
@@ -140,7 +140,7 @@ function removeFromWatchlist(button) {
   // Sends item ID as an argument to that function.
   $.ajax('watchlist_funcs.php', {
     type: "POST",
-    data: {functionname: 'remove_from_watchlist', arguments: [<?php echo($item_id);?>]},
+   data: {functionname: 'remove_from_watchlist', arguments: <?php echo($item_id);?>},
 
     success: 
       function (obj, textstatus) {

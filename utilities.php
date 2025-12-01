@@ -6,6 +6,24 @@ $DB_HOST = 'localhost';
 $DB_NAME = 'auction_db';   // <-- database name you created in phpMyAdmin
 $DB_USER = 'root';
 $DB_PASS = '';             // XAMPP default password is empty ("")
+$DB_HOST = 'localhost';
+$DB_NAME = 'auction_system_man8'; // 
+$DB_USER = 'root';
+$DB_PASS = '';                    //
+
+function get_db(): PDO {
+    static $pdo = null;
+    global $DB_HOST, $DB_NAME, $DB_USER, $DB_PASS;
+
+    if ($pdo === null) {
+        $dsn = "mysql:host=$DB_HOST;dbname=$DB_NAME;charset=utf8mb4";
+        $pdo = new PDO($dsn, $DB_USER, $DB_PASS, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        ]);
+    }
+    return $pdo;
+}
+
 
 // Return a shared PDO connection
 function get_db(): PDO {

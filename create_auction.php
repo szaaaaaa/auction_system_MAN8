@@ -48,15 +48,20 @@ require_once("utilities.php");
              <?php
                 try {
                     $pdo = get_db();
-                    $sql = "SELECT * FROM Category";
+                    $sql = "SELECT categoryID, categoryName FROM category";
                     $stmt = $pdo->query($sql);
                     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                        echo '<option value="' . $row['categoryID'] . '">' . htmlspecialchars(string: $row['categoryName']) . '</option>';
+                    echo '<option value="' . (int)$row['categoryID'] . '">'
+                     . htmlspecialchars($row['categoryName'], ENT_QUOTES, 'UTF-8')
+                     . '</option>';
                     }
-                } catch (PDOException $e) {
-                    echo '<option disabled>Error loading categories</option>';
-                }
-              ?>
+                 } catch (PDOException $e) {
+    echo '<option disabled>Error loading categories: '
+       . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8')
+       . '</option>';
+  }
+?>
+</select>
             </select>
             <small id="categoryHelp" class="form-text text-muted"><span class="text-danger">* Required.</span> Select a category for this item.</small>
           </div>
@@ -98,7 +103,7 @@ require_once("utilities.php");
             <div class="form-check">
               <input class="form-check-input" type="checkbox" id="isAnonymous" name="isAnonymous" value="1">
               <label class="form-check-label" for="isAnonymous">
-                Make this auction anonymous (匿名发布)
+                Make this auction anonymous
               </label>
               <small class="form-text text-muted">If checked, your username will be hidden from bidders.</small>
             </div>

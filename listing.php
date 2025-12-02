@@ -225,7 +225,10 @@ if (isset($_SESSION['user_id'])) {
 }
 ?>
 
-<?php if ($has_session): ?>
+<?php
+// Only logged-in users who are NOT sellers can place bids
+if ($has_session && !$is_seller && $status === 'active' && $now < $end_time):
+?>
 <form method="POST" action="place_bid.php">
   <div class="input-group">
     <div class="input-group-prepend">

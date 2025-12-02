@@ -1,7 +1,6 @@
 <?php
-// ===============================
+date_default_timezone_set("Europe/London");
 // Database configuration
-// ===============================
 $DB_HOST = 'localhost';
 $DB_NAME = 'auction_db';   // <-- database name you created in phpMyAdmin
 $DB_USER = 'root';
@@ -27,9 +26,7 @@ function get_db(): PDO {
 }
 
 
-// ===============================
 // Helper: display_time_remaining
-// ===============================
 function display_time_remaining($interval) {
 
     if ($interval->days == 0 && $interval->h == 0) {
@@ -47,9 +44,7 @@ function display_time_remaining($interval) {
 }
 
 
-// ===============================
 // Helper: print_listing_li
-// ===============================
 function print_listing_li($item_id, $title, $desc, $price, $num_bids, $end_time)
 {
     // Truncate long descriptions

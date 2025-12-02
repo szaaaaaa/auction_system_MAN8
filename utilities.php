@@ -122,16 +122,16 @@ function format_time_remaining(string $end_datetime): string {
 }
 
 function getAuction($auctionId) {
-    global $DB_HOST, $DB_NAME, $DB_USER, $DB_PASS;
     $pdo = get_db();
 
     $stmt = $pdo->prepare("
-        SELECT * FROM auction
-        WHERE auctionID = ?
+        SELECT a.*, i.sellerID
+        FROM auction a
+        JOIN item i ON a.itemID = i.itemID
+        WHERE a.auctionID = ?
         LIMIT 1
     ");
     $stmt->execute([$auctionId]);
-
     return $stmt->fetch();
 }
 
@@ -163,9 +163,7 @@ function getHighestBid($auctionId) {
 }
 
 
-// ======================================
 // Create transaction record
-// ======================================
 function createTransaction($auctionId, $buyerId, $finalPrice) {
     $pdo = get_db();
 

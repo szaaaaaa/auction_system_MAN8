@@ -2,39 +2,47 @@
 session_start();
 require_once("utilities.php");
 
+// Read POST data
 $auctionId = $_POST['auction_id'];
-$action = $_POST['action'];
+$action    = $_POST['action'];
 
 // Fetch auction info
 $auction = getAuction($auctionId);
+
+// Extract item_id for redirect
 $item_id = $auction['itemID'];
 
 // Permission check: only seller can close the auction
-if ($auction['sellerID'] != $_SESSION['userID']) {
+if ($auction['sellerID'] != $_SESSION['user_id']) {
     die("You do not have permission to perform this action.");
 }
 
-// Cancel auction
+// CANCEL AUCTION
 if ($action == "cancel") {
 
-    // Update status to cancelled
     updateAuctionStatus($auctionId, 'cancelled');
+
     header("Location: listing.php?item_id=$item_id&msg=cancelled");
     exit();
 }
 
-// Settle auction early
+
+// SETTLE AUCTION EARLY
 if ($action == "settle") {
 
     // Get highest bid
     $highest = getHighestBid($auctionId);
 
-    // If there is a highest bid, create a transaction record
-    if ($highest) {
-        createTransaction($auctionId, $highest['bidderID'], $highest['amount']);
-    }
+    // If a bid exists, create a transaction
 
-    // Mark auction as ended
+    if ($highest) {
+        createTransaction(
+            $auctionId,
+            $highest['buyerID'],
+            $highest['bidAmount']
+        );
+    }
+    // Update auction status
     updateAuctionStatus($auctionId, 'ended');
 
     header("Location: listing.php?item_id=$item_id&msg=settled");

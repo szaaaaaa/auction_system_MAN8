@@ -82,11 +82,22 @@ $auctions = $stmt->fetchAll();
                 </strong>
                 <br>
                 <?php 
-                    $end = new DateTime($a['endDate']);
-                    $now = new DateTime();
-                    echo ($now > $end) 
-                        ? "<span class='text-danger'>Ended</span>" 
-                        : format_time_remaining($a['endDate']);
+                    if ($a['status'] === 'cancelled') {
+    echo "<span class='text-danger'>Cancelled</span>";
+} 
+else if ($a['status'] === 'ended') {
+    echo "<span class='text-danger'>Ended</span>";
+} 
+else {
+     $end = new DateTime($a['endDate']);
+    $now = new DateTime();
+
+    if ($now > $end) {
+        echo "<span class='text-danger'>Ended</span>";
+    } else {
+        echo format_time_remaining($a['endDate']);
+    }
+}
                 ?>
             </div>
         </li>

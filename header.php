@@ -29,14 +29,23 @@
     <li class="nav-item">
     
 <?php
-  // Displays either login or logout on the right, depending on user's
+    // Displays either login or logout on the right, depending on user's
   // current status (session).
   if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] == true) {
-    echo '<a class="nav-link" href="logout.php">Logout</a>';
+
+    # Display account type if set
+    $roleText = '';
+    if (isset($_SESSION['account_type']) && $_SESSION['account_type'] !== '') {
+      // buyer -> Buyer, seller -> Seller
+      $roleText = htmlspecialchars(ucfirst($_SESSION['account_type'])) . ' | ';
+    }
+
+    echo '<a class="nav-link" href="logout.php">' . $roleText . 'Logout</a>';
   }
   else {
     echo '<button type="button" class="btn nav-link" data-toggle="modal" data-target="#loginModal">Login</button>';
   }
+
 ?>
 
     </li>
@@ -52,6 +61,9 @@
   echo('
 	<li class="nav-item mx-1">
       <a class="nav-link" href="mybids.php">My Bids</a>
+    </li>
+  <li class="nav-item mx-1">
+      <a class="nav-link" href="mywatchlist.php">Watchlist</a>
     </li>
 	<li class="nav-item mx-1">
       <a class="nav-link" href="recommendations.php">Recommended</a>

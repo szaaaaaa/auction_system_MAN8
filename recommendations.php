@@ -6,7 +6,7 @@
 <h2 class="my-3">Recommendations for you</h2>
 
 <?php
-  // TODO 1: 检查用户是否登录（cookie / session）
+
   if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
       echo '<p>You need to log in to see recommendations.</p>';
       echo '</div>';
@@ -14,10 +14,9 @@
       exit();
   }
 
-  // 当前买家的 ID（根据你的登录逻辑，可能是 userID / id / buyerID，自行调整）
   $buyer_id = $_SESSION['user_id'];
   $pdo = get_db();   
-  // TODO 2: 根据用户的出价历史，查询他们可能感兴趣的拍卖
+
   $sql = "
       SELECT 
           a.auctionID,
@@ -60,10 +59,11 @@
   $stmt = $pdo->prepare($sql);
   $stmt->execute([':buyer_id' => $buyer_id]);
 
-  // TODO 3: 循环结果，输出为列表项
   echo '<ul class="list-group">';
 
+  $has_results = false;  
   while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+      $has_results = true;
       $auction_id    = $row['auctionID'];
       $item_id       = $row['itemID'];
       $title         = $row['itemName'];
@@ -81,10 +81,6 @@
       echo '<p>No recommendations yet. Try bidding on some items first!</p>';
   }
   ?>
-
-  echo '</ul>';
-  ?>
-
 </div>
 
 <?php include_once("footer.php") ?>

@@ -150,12 +150,36 @@ if (!$transaction) {
 
 // DISPLAY THE RESULT 
 if ($transaction) {
+
     echo "<div class='alert alert-success'>
             Winner: Buyer #{$transaction['buyerID']}<br>
             Final Price: £{$transaction['finalPrice']}
           </div>";
+
 } else {
-    echo "<div class='alert alert-warning'>No bids placed.</div>";
+
+    // Fallback：there is no transaction, watch the highest bid
+    $stmt = $pdo->prepare("
+        SELECT buyerID, bidAmount
+        FROM bid
+        WHERE auctionID = ?
+        ORDER BY bidAmount DESC
+        LIMIT 1
+    ");
+    $stmt->execute([$auction_id]);
+    $winner = $stmt->fetch();
+
+    if ($winner) {
+        echo "<div class='alert alert-info'>
+                Current highest bid by Buyer #{$winner['buyerID']}<br>
+                £{$winner['bidAmount']}
+              </div>";
+    } else {
+        echo "<div class='alert alert-warning'>
+                No bids placed.
+              </div>";
+    }
+
 }
 ?>
 
@@ -207,10 +231,29 @@ function addToWatchlist() {
       arguments: [<?php echo $auction_id; ?>]
     },
     success: function(obj) {
-      if (obj.trim() === 'success') {
+      // return result
+      var text = (obj || "").toString().toLowerCase().trim();
+
+      if (text.indexOf("success") !== -1) {
+        // success
         $("#watch_nowatch").hide();
         $("#watch_watching").show();
+      } else {
+        // Add to watch failed
+        var mydiv = document.getElementById("watch_nowatch");
+        mydiv.appendChild(document.createElement("br"));
+        mydiv.appendChild(
+          document.createTextNode("Add to watch failed. Try again later.")
+        );
       }
+    },
+    error: function() {
+      // AJAX request failed due to iteself
+      var mydiv = document.getElementById("watch_nowatch");
+      mydiv.appendChild(document.createElement("br"));
+      mydiv.appendChild(
+        document.createTextNode("Add to watch request failed. Please try again later.")
+      );
     }
   });
 }
@@ -223,10 +266,28 @@ function removeFromWatchlist() {
       arguments: [<?php echo $auction_id; ?>]
     },
     success: function(obj) {
-      if (obj.trim() === 'success') {
+      var text = (obj || "").toString().toLowerCase().trim();
+
+      if (text.indexOf("success") !== -1) {
+        // when success
         $("#watch_watching").hide();
         $("#watch_nowatch").show();
+      } else {
+        // Remove from watch failed
+        var mydiv = document.getElementById("watch_watching");
+        mydiv.appendChild(document.createElement("br"));
+        mydiv.appendChild(
+          document.createTextNode("Remove from watch failed. Try again later.")
+        );
       }
+    },
+    error: function() {
+      // AJAX fail to request
+      var mydiv = document.getElementById("watch_watching");
+      mydiv.appendChild(document.createElement("br"));
+      mydiv.appendChild(
+        document.createTextNode("Remove from watch request failed. Please try again later.")
+      );
     }
   });
 }

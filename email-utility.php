@@ -13,7 +13,7 @@ function sendEmail($to, $subject, $body) {
     try {
         // Mailtrap SMTP
         $mail->isSMTP();
-        $mail->Host = 'smtp.mailtrap.io';
+        $mail->Host = 'sandbox.smtp.mailtrap.io';
         $mail->SMTPAuth = true;
         $mail->Username = 'e7565ce8c5df9f'; 
         $mail->Password = '3e4ab884f11203'; 

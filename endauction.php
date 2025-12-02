@@ -2,6 +2,9 @@
 require_once "utilities.php";
 require_once "email-utility.php";
 
+$pdo = get_db(); 
+
+date_default_timezone_set("Europe/London");
 $now = date("Y-m-d H:i:s");
 
 $stmt = $pdo->prepare("
@@ -27,22 +30,21 @@ foreach ($endedAuctions as $auction) {
     $winner = $stmt->fetch();
 
     $pdo->prepare("
-        UPDATE auction SET status = 'closed' WHERE auctionID = :aid
+        UPDATE auction SET status = 'ended' WHERE auctionID = :aid
     ")->execute(['aid' => $auctionID]);
 
     if ($winner) {
 
         sendEmail(
             $winner['email'],
-            "You won auction: " . $auction['itemID'],
+            "You won auction #" . $auctionID,
             "
                 <h2>Congratulations, {$winner['username']}!</h2>
                 <p>You won the auction for item <b>{$auction['itemID']}</b></p>
-                <p>Your winning bid: <b>{$winner['bidAmount']}</b></p>
+                <p>Your winning bid: <b>£{$winner['bidAmount']}</b></p>
             "
         );
-
     }
 }
 
-echo "Auction check complete.";
+echo "Auction auto-check complete.";

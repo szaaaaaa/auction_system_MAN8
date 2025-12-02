@@ -31,6 +31,7 @@
       JOIN item i ON a.itemID = i.itemID
       LEFT JOIN bid b_all ON b_all.auctionID = a.auctionID
       WHERE a.status = 'active'
+        AND a.endDate > NOW()   
         AND EXISTS (
             SELECT 1
             FROM bid b_u

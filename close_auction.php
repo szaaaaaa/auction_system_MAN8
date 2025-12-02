@@ -7,6 +7,7 @@ $action = $_POST['action'];
 
 // Fetch auction info
 $auction = getAuction($auctionId);
+$item_id = $auction['itemID'];
 
 // Permission check: only seller can close the auction
 if ($auction['sellerID'] != $_SESSION['userID']) {
@@ -18,8 +19,7 @@ if ($action == "cancel") {
 
     // Update status to cancelled
     updateAuctionStatus($auctionId, 'cancelled');
-
-    header("Location: listing.php?auction_id=$auctionId&msg=cancelled");
+    header("Location: listing.php?item_id=$item_id&msg=cancelled");
     exit();
 }
 
@@ -37,7 +37,7 @@ if ($action == "settle") {
     // Mark auction as ended
     updateAuctionStatus($auctionId, 'ended');
 
-    header("Location: listing.php?auction_id=$auctionId&msg=settled");
+    header("Location: listing.php?item_id=$item_id&msg=settled");
     exit();
 }
 ?>

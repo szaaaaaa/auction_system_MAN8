@@ -1,7 +1,17 @@
 <?php
+require_once "email-utility.php";
 require_once "utilities.php";
 session_start();
 $pdo = get_db();
+
+ini_set("SMTP", $mailHost);
+ini_set("smtp_port", $mailPort);
+ini_set("sendmail_from", "Man8auction@test.com");
+
+// Mailtrap Auth
+ini_set("mail.log", "mail.log");
+ini_set("auth_username", $mailUsername);
+ini_set("auth_password", $mailPassword);
 
 // 只允许 buyer 出价
 if (!isset($_SESSION['user_id']) || $_SESSION['account_type'] !== 'buyer') {
@@ -64,6 +74,32 @@ $stmt->execute([$auction_id, $buyer_id, $bid_amount]);
 // 提交事务
 $pdo->commit();
 
+// send email to previous bidder
+$stmt = $pdo->prepare("
+    SELECT buyerID 
+    FROM bid 
+    WHERE auctionID = :aid 
+    ORDER BY bidAmount DESC 
+    LIMIT 1 OFFSET 1
+");
+$stmt->execute(['aid' => $auctionID]);
+$prev = $stmt->fetchColumn();
+
+if ($prev) {
+ 
+    $user = $pdo->prepare("SELECT email FROM user WHERE userID = :uid");
+    $user->execute(['uid' => $prev]);
+    $email = $user->fetchColumn();
+
+    sendEmail(
+        $email,
+        "Your bid was outbid",
+        "<p>Your bid for auction <b>$title</b> has been outbid.</p>"
+    );
+}
+
+
 // 回跳页面
 header("Location: listing.php?item_id=".$auction_id);
 exit;
+

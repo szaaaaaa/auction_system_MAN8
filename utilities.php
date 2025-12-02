@@ -89,4 +89,35 @@ function print_listing_li($item_id, $title, $desc, $price, $num_bids, $end_time)
         </div>
     </li>';
 }
+function format_time_remaining(string $end_datetime): string {
+    try {
+        $end = new DateTime($end_datetime);
+    } catch (Exception $e) {
+        return '';
+    }
+
+    $now = new DateTime();
+
+    if ($end <= $now) {
+        return 'Ended';
+    }
+
+    $diff = $now->diff($end);
+
+    $parts = [];
+    if ($diff->d > 0) {
+        $parts[] = $diff->d . 'd';
+    }
+    if ($diff->h > 0) {
+        $parts[] = $diff->h . 'h';
+    }
+    if ($diff->i > 0) {
+        $parts[] = $diff->i . 'm';
+    }
+    if (empty($parts)) {
+        $parts[] = $diff->s . 's';
+    }
+
+    return implode(' ', $parts) . ' remaining';
+}
 ?>

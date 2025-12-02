@@ -1,23 +1,37 @@
 <?php
-// Optional: show errors while developing (remove or comment out in production)
+// --------------------------------------------------------
+// browse.php
+// Browse active auction listings with search, filters,
+// sorting, and pagination.
+// --------------------------------------------------------
+
+// Show errors while developing (disable in production)
 error_reporting(E_ALL);
 ini_set('display_errors', '1');
 
 require_once "utilities.php";
 
+// Get PDO connection
 $pdo = get_db();
 
-/******************************************
- *   Read search parameters from URL
- ******************************************/
+// --------------------------------------------------------
+// 1. Timezone + unified "now" time
+// --------------------------------------------------------
+date_default_timezone_set('Europe/London');  // Adjust if your server uses a different timezone
+$now     = new DateTime();
+$now_str = $now->format('Y-m-d H:i:s');
+
+// --------------------------------------------------------
+// 2. Read search parameters from URL
+// --------------------------------------------------------
 $keyword   = isset($_GET['keyword']) ? trim($_GET['keyword']) : "";
-$category  = isset($_GET['cat']) ? $_GET['cat'] : "all";   // categoryID or "all"
+$category  = isset($_GET['cat']) ? $_GET['cat'] : "all";      // categoryID or "all"
 $ordering  = isset($_GET['order_by']) ? $_GET['order_by'] : "pricelow";
 $curr_page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
 
-/******************************************
- *   Fetch categories for the dropdown
- ******************************************/
+// --------------------------------------------------------
+// 3. Fetch categories for the dropdown
+// --------------------------------------------------------
 $categories = [];
 try {
     $cat_stmt   = $pdo->query("SELECT categoryID, categoryName FROM category ORDER BY categoryName ASC");
@@ -26,11 +40,12 @@ try {
     $categories = [];
 }
 
-/******************************************
- *   Build WHERE clause for active auctions
- ******************************************/
-$where  = "a.status = 'active' AND a.endDate > NOW()";
-$params = [];
+// --------------------------------------------------------
+// 4. Build WHERE clause for active auctions
+// --------------------------------------------------------
+// Use the same $now (PHP time) for both SQL and PHP logic
+$where  = "a.status = 'active' AND a.endDate > :now";
+$params = [':now' => $now_str];
 
 // Keyword search (itemName + description)
 if ($keyword !== "") {
@@ -41,14 +56,14 @@ if ($keyword !== "") {
 // Category filter (by categoryID)
 $categoryId = null;
 if ($category !== "all" && $category !== "" && ctype_digit((string)$category)) {
-    $categoryId   = (int)$category;
-    $where       .= " AND i.categoryID = :cat";
-    $params[':cat'] = $categoryId;
+    $categoryId       = (int)$category;
+    $where           .= " AND i.categoryID = :cat";
+    $params[':cat']   = $categoryId;
 }
 
-/******************************************
- *   Sorting
- ******************************************/
+// --------------------------------------------------------
+// 5. Sorting
+// --------------------------------------------------------
 switch ($ordering) {
     case "pricelow":
         $order_sql = "current_price ASC";
@@ -63,15 +78,15 @@ switch ($ordering) {
         break;
 }
 
-/******************************************
- *   Pagination settings
- ******************************************/
+// --------------------------------------------------------
+// 6. Pagination settings
+// --------------------------------------------------------
 $results_per_page = 10;
 $offset           = ($curr_page - 1) * $results_per_page;
 
-/******************************************
- *   Count total matching auctions
- ******************************************/
+// --------------------------------------------------------
+// 7. Count total matching auctions
+// --------------------------------------------------------
 $count_sql = "
     SELECT COUNT(DISTINCT a.auctionID)
     FROM auction a
@@ -80,17 +95,23 @@ $count_sql = "
 ";
 
 $count_stmt = $pdo->prepare($count_sql);
+
+// Bind all search params
 foreach ($params as $name => $value) {
-    $type = ($name === ':cat') ? PDO::PARAM_INT : PDO::PARAM_STR;
-    $count_stmt->bindValue($name, $value, $type);
+    if ($name === ':cat') {
+        $count_stmt->bindValue($name, $value, PDO::PARAM_INT);
+    } else {
+        $count_stmt->bindValue($name, $value, PDO::PARAM_STR);
+    }
 }
+
 $count_stmt->execute();
 $total_results = (int)$count_stmt->fetchColumn();
 $max_page      = max(1, (int)ceil($total_results / $results_per_page));
 
-/******************************************
- *   Fetch current page of results
- ******************************************/
+// --------------------------------------------------------
+// 8. Fetch current page of results
+// --------------------------------------------------------
 $query = "
     SELECT
         a.auctionID,
@@ -121,8 +142,11 @@ $stmt = $pdo->prepare($query);
 
 // Bind search parameters again
 foreach ($params as $name => $value) {
-    $type = ($name === ':cat') ? PDO::PARAM_INT : PDO::PARAM_STR;
-    $stmt->bindValue($name, $value, $type);
+    if ($name === ':cat') {
+        $stmt->bindValue($name, $value, PDO::PARAM_INT);
+    } else {
+        $stmt->bindValue($name, $value, PDO::PARAM_STR);
+    }
 }
 
 // Bind pagination parameters
@@ -133,6 +157,9 @@ $stmt->execute();
 $rows        = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $num_results = count($rows);
 
+// --------------------------------------------------------
+// 9. Output HTML
+// --------------------------------------------------------
 include_once "header.php";
 ?>
 
@@ -231,7 +258,8 @@ include_once "header.php";
         echo "<li class='list-group-item'>No listings found.</li>";
     } else {
         foreach ($rows as $row) {
-            $auction_id    = (int)$row['auctionID'];      // used as listing id
+            $auction_id    = (int)$row['auctionID'];      // Auction ID (if needed later)
+            $item_id       = (int)$row['itemID'];         // Item ID used in listing.php
             $title         = htmlspecialchars($row['itemName']);
             $description   = htmlspecialchars($row['description']);
             $seller_id     = (int)$row['sellerID'];
@@ -239,19 +267,18 @@ include_once "header.php";
             $num_bids      = (int)$row['num_bids'];
             $end_date      = new DateTime($row['endDate']);
 
-            // Build time remaining string (reuse display_time_remaining from utilities.php)
-            $now = new DateTime();
+            // Build time remaining string using the same $now
             if ($now > $end_date) {
                 $time_remaining = 'This auction has ended';
             } else {
-                $interval        = date_diff($now, $end_date);
-                $time_remaining  = display_time_remaining($interval) . ' remaining';
+                $interval       = $now->diff($end_date);
+                $time_remaining = display_time_remaining($interval) . ' remaining';
             }
 
             echo '
             <li class="list-group-item d-flex justify-content-between">
               <div class="p-2 mr-5">
-                <h5><a href="listing.php?item_id=' . $auction_id . '">' . $title . '</a></h5>
+                <h5><a href="listing.php?item_id=' . $item_id . '">' . $title . '</a></h5>
                 <p class="mb-1 text-muted small">Seller ID: ' . $seller_id . '</p>
                 ' . $description . '
               </div>
@@ -323,3 +350,5 @@ include_once "header.php";
 </div>
 
 <?php include_once "footer.php"; ?>
+
+

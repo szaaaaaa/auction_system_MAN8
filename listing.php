@@ -56,8 +56,27 @@ $num_bids = $row['num_bids'];
   // TODO: If the user has a session, use it to make a query to the database
   //       to determine if the user is already watching this item.
   //       For now, this is hardcoded.
-  $has_session = true;
-  $watching = false;
+ $item_id = (int)$_GET['item_id'];
+$has_session = isset($_SESSION['user_id']); 
+
+ $watching = false;
+
+if ($has_session) {
+    $buyer_id = (int)($_SESSION['user_id']);
+
+    $stmt = $pdo->prepare("
+        SELECT 1
+        FROM watchlist
+        WHERE buyerID = :bid AND auctionID = :aid
+        LIMIT 1
+    ");
+    $stmt->execute([
+        ':bid' => $buyer_id,
+        ':aid' => $item_id,
+    ]);
+
+    $watching = (bool)$stmt->fetchColumn();
+}
 ?>
 
 
@@ -221,68 +240,75 @@ else {
 // JavaScript functions: addToWatchlist and removeFromWatchlist.
 
 function addToWatchlist(button) {
-  console.log("These print statements are helpful for debugging btw");
-
-  // This performs an asynchronous call to a PHP function using POST method.
-  // Sends item ID as an argument to that function.
   $.ajax('watchlist_funcs.php', {
     type: "POST",
-    data: {functionname: 'add_to_watchlist', arguments: <?php echo($item_id);?>},
+    data: {
+      functionname: 'add_to_watchlist',
+      arguments: <?php echo (int)$item_id; ?> 
+    },
 
-    success: 
-      function (obj, textstatus) {
-        // Callback function for when call is successful and returns obj
-        console.log("Success");
-        var objT = obj.trim();
- 
-        if (objT == "success") {
-          $("#watch_nowatch").hide();
-          $("#watch_watching").show();
-        }
-        else {
-          var mydiv = document.getElementById("watch_nowatch");
-          mydiv.appendChild(document.createElement("br"));
-          mydiv.appendChild(document.createTextNode("Add to watch failed. Try again later."));
-        }
-      },
+    success: function (obj) {
+      console.log("addToWatchlist raw response:", obj);
 
-    error:
-      function (obj, textstatus) {
-        console.log("Error");
+      var objT = (obj || "").toString().toLowerCase();
+
+      if (objT.indexOf("success") !== -1) {
+        $("#watch_nowatch").hide();
+        $("#watch_watching").show();
+      } else {
+        var mydiv = document.getElementById("watch_nowatch");
+        mydiv.appendChild(document.createElement("br"));
+        mydiv.appendChild(
+          document.createTextNode("Add to watch failed. Try again later.")
+        );
       }
-  }); // End of AJAX call
+    },
 
-} // End of addToWatchlist func
+    error: function () {
+      var mydiv = document.getElementById("watch_nowatch");
+      mydiv.appendChild(document.createElement("br"));
+      mydiv.appendChild(
+        document.createTextNode("Add to watch request failed. Please try again later.")
+      );
+    }
+  });
+}// End of AJAX call
+
+// End of addToWatchlist func
 
 function removeFromWatchlist(button) {
-  // This performs an asynchronous call to a PHP function using POST method.
-  // Sends item ID as an argument to that function.
   $.ajax('watchlist_funcs.php', {
     type: "POST",
-   data: {functionname: 'remove_from_watchlist', arguments: <?php echo($item_id);?>},
+    data: {
+      functionname: 'remove_from_watchlist',
+      arguments: <?php echo (int)$item_id; ?>
+    },
 
-    success: 
-      function (obj, textstatus) {
-        // Callback function for when call is successful and returns obj
-        console.log("Success");
-        var objT = obj.trim();
- 
-        if (objT == "success") {
-          $("#watch_watching").hide();
-          $("#watch_nowatch").show();
-        }
-        else {
-          var mydiv = document.getElementById("watch_watching");
-          mydiv.appendChild(document.createElement("br"));
-          mydiv.appendChild(document.createTextNode("Watch removal failed. Try again later."));
-        }
-      },
+    success: function (obj) {
+      console.log("removeFromWatchlist raw response:", obj);
+      var objT = (obj || "").toString().toLowerCase();
 
-    error:
-      function (obj, textstatus) {
-        console.log("Error");
+      if (objT.indexOf("success") !== -1) {
+        $("#watch_watching").hide();
+        $("#watch_nowatch").show();
+      } else {
+        var mydiv = document.getElementById("watch_watching");
+        mydiv.appendChild(document.createElement("br"));
+        mydiv.appendChild(
+          document.createTextNode("Remove from watch failed. Try again later.")
+        );
       }
-  }); // End of AJAX call
+    },
 
-} // End of addToWatchlist func
+    error: function () {
+      var mydiv = document.getElementById("watch_watching");
+      mydiv.appendChild(document.createElement("br"));
+      mydiv.appendChild(
+        document.createTextNode("Remove from watch request failed. Please try again later.")
+      );
+    }
+  });
+
+}; // End of AJAX call
+ // End of addToWatchlist func
 </script>

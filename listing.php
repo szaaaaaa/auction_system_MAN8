@@ -3,6 +3,8 @@ require_once "utilities.php";
 $pdo = get_db();
 include_once("header.php");
 
+
+
 // read URL
 if (!isset($_GET['item_id']) || !is_numeric($_GET['item_id'])) {
     die("Invalid item_id.");
@@ -12,7 +14,7 @@ $item_id = (int)$_GET['item_id'];
 // Find the auction based on the item_id
 $sql = "
 SELECT a.auctionID, a.endDate, a.startingPrice, a.status,
-       i.itemName, i.description
+       i.itemName, i.description, i.sellerID
 FROM auction a
 JOIN item i ON a.itemID = i.itemID
 WHERE i.itemID = ?
@@ -56,6 +58,12 @@ if ($now < $end_time) {
 // Session and watchlist status
 $has_session = isset($_SESSION['user_id']);
 $watching = false;
+$is_seller = false;
+if ($has_session) {
+    $stmt = $pdo->prepare("SELECT 1 FROM seller WHERE userID = ?");
+    $stmt->execute([$_SESSION['user_id']]);
+    $is_seller = $stmt->fetch() ? true : false;
+}
 
 if ($has_session) {
     $buyer_id = $_SESSION['user_id'];
@@ -76,7 +84,7 @@ if ($has_session) {
   </div>
 
   <div class="col-sm-4 align-self-center">
-<?php if ($now < $end_time && $status === 'active'): ?>
+<?php if ($now < $end_time && $status === 'active' && !$is_seller): ?>
     <div id="watch_nowatch" <?php if ($has_session && $watching) echo 'style="display:none"'; ?>>
       <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addToWatchlist()">+ Add to watchlist</button>
     </div>
@@ -187,6 +195,35 @@ if ($transaction) {
 
   <p>Auction ends <?php echo date_format($end_time,'j M H:i') . $time_remaining; ?></p>
   <p class="lead">Current bid: £<?php echo number_format($current_price,2); ?></p>
+
+<?php
+if (isset($_SESSION['user_id'])) {
+
+    $owner = $auction['sellerID'];
+
+    if ($owner == $_SESSION['user_id'] && $status === 'active') {
+?>
+        <form method="POST" action="close_auction.php" class="mb-3">
+
+            <input type="hidden" name="auction_id" value="<?php echo $auction_id; ?>">
+
+            <!-- Button to cancel auction early -->
+            <button type="submit" name="action" value="cancel"
+                class="btn btn-danger form-control mb-2">
+                Cancel Auction Early
+            </button>
+
+            <!-- Button to end and settle auction early -->
+            <button type="submit" name="action" value="settle"
+                class="btn btn-warning form-control">
+                Settle Auction Early
+            </button>
+
+        </form>
+<?php
+    }
+}
+?>
 
 <?php if ($has_session): ?>
 <form method="POST" action="place_bid.php">

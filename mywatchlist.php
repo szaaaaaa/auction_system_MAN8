@@ -3,19 +3,31 @@ require_once("utilities.php");
 include_once("header.php");
 
 if (!isset($_SESSION['user_id'])) {
-  echo '
-    <div class="container mt-5 text-center">
-      <p>Please <a href="login.php">log in</a> to see your watchlist.</p>
-    </div>
-  ';
-  include_once("footer.php");
-  exit();
+    echo '
+      <div class="container mt-5 text-center">
+        <p>Please <a href="login.php">log in</a> to see your watchlist.</p>
+      </div>
+    ';
+    include_once("footer.php");
+    exit();
 }
 
 $buyer_id = (int)$_SESSION['user_id'];
 $pdo      = get_db();
 
+  // AUTO-CLEAN FEATURE:
+   //Remove auctions that are no longer active
+$cleanup_sql = "
+    DELETE w FROM watchlist w
+    JOIN auction a ON a.auctionID = w.auctionID
+    WHERE 
+        w.buyerID = :bid
+        AND (a.status <> 'active' OR a.endDate <= NOW())
+";
+$cleanup_stmt = $pdo->prepare($cleanup_sql);
+$cleanup_stmt->execute([':bid' => $buyer_id]);
 
+   //Retrieve all active auctions still in the watchlist
 $sql = "
   SELECT
     w.auctionID,
@@ -25,9 +37,11 @@ $sql = "
     i.itemName,
     i.description
   FROM watchlist w
-  LEFT JOIN auction a ON a.auctionID = w.auctionID
-  LEFT JOIN item    i ON i.itemID    = a.itemID
+  JOIN auction a ON a.auctionID = w.auctionID
+  JOIN item    i ON i.itemID    = a.itemID
   WHERE w.buyerID = :bid
+    AND a.status = 'active'
+    AND a.endDate > NOW()
   ORDER BY w.watchDate DESC
 ";
 
@@ -41,7 +55,7 @@ $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
   <?php if (empty($rows)): ?>
 
-    <p>You have no items in your watchlist yet.</p>
+    <p>You have no active items in your watchlist.</p>
 
   <?php else: ?>
 
@@ -49,48 +63,43 @@ $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
       <?php foreach ($rows as $row): ?>
         <?php
           $item_id = (int)$row['itemID'];
-          $title   = $row['itemName'] ?? ('Auction #' . $row['auctionID']);
-          $desc    = $row['description'] ?? '';
-          $watch   = $row['watchDate'] ?? '';
-          $end_str = $row['endDate'] ?? '';
+          $title   = $row['itemName'];
+          $desc    = $row['description'];
+          $watch   = $row['watchDate'];
 
-          $time_remaining_text = '';
-          if ($end_str !== '') {
-            $now      = new DateTime();
-            $end_time = new DateTime($end_str);
+          $now      = new DateTime();
+          $end_time = new DateTime($row['endDate']);
+          $diff     = date_diff($now, $end_time);
 
-            if ($now < $end_time) {
-              $diff = date_diff($now, $end_time);
-              $time_remaining_text = display_time_remaining($diff) . ' remaining';
-            } else {
-              $time_remaining_text = 'Ended';
-            }
-          }
+          $remaining = display_time_remaining($diff) . " remaining";
         ?>
+
         <li class="list-group-item d-flex justify-content-between">
           <div>
             <h5>
               <a href="listing.php?item_id=<?php echo $item_id; ?>">
-                <?php echo htmlspecialchars($title, ENT_QUOTES, 'UTF-8'); ?>
+                <?php echo htmlspecialchars($title); ?>
               </a>
             </h5>
+
             <p class="mb-1">
-              <?php echo nl2br(htmlspecialchars($desc, ENT_QUOTES, 'UTF-8')); ?>
+              <?php echo nl2br(htmlspecialchars($desc)); ?>
             </p>
+
             <small class="text-muted d-block">
-              Watched on:
-              <?php echo htmlspecialchars($watch, ENT_QUOTES, 'UTF-8'); ?>
+              Watched on: <?php echo htmlspecialchars($watch); ?>
             </small>
-            <?php if ($time_remaining_text !== ''): ?>
-              <small class="text-muted d-block">
-                <?php echo htmlspecialchars($time_remaining_text, ENT_QUOTES, 'UTF-8'); ?>
-              </small>
-            <?php endif; ?>
+
+            <small class="text-muted d-block">
+              <?php echo htmlspecialchars($remaining); ?>
+            </small>
           </div>
         </li>
+
       <?php endforeach; ?>
     </ul>
 
   <?php endif; ?>
 </div>
 
+<?php include_once("footer.php"); ?>

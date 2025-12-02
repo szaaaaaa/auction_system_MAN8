@@ -120,4 +120,60 @@ function format_time_remaining(string $end_datetime): string {
 
     return implode(' ', $parts) . ' remaining';
 }
+
+function getAuction($auctionId) {
+    global $DB_HOST, $DB_NAME, $DB_USER, $DB_PASS;
+    $pdo = get_db();
+
+    $stmt = $pdo->prepare("
+        SELECT * FROM auction
+        WHERE auctionID = ?
+        LIMIT 1
+    ");
+    $stmt->execute([$auctionId]);
+
+    return $stmt->fetch();
+}
+
+function updateAuctionStatus($auctionId, $status) {
+    $pdo = get_db();
+
+    $stmt = $pdo->prepare("
+        UPDATE auction
+        SET status = ?
+        WHERE auctionID = ?
+    ");
+    $stmt->execute([$status, $auctionId]);
+}
+
+
+function getHighestBid($auctionId) {
+    $pdo = get_db();
+
+    $stmt = $pdo->prepare("
+        SELECT buyerID, bidAmount
+        FROM bid
+        WHERE auctionID = ?
+        ORDER BY bidAmount DESC
+        LIMIT 1
+    ");
+    $stmt->execute([$auctionId]);
+
+    return $stmt->fetch();
+}
+
+
+// ======================================
+// Create transaction record
+// ======================================
+function createTransaction($auctionId, $buyerId, $finalPrice) {
+    $pdo = get_db();
+
+    $stmt = $pdo->prepare("
+        INSERT INTO transaction
+            (auctionID, buyerID, finalPrice, date, status)
+        VALUES (?, ?, ?, NOW(), 'COMPLETED')
+    ");
+    $stmt->execute([$auctionId, $buyerId, $finalPrice]);
+}
 ?>

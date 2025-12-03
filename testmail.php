@@ -2,11 +2,11 @@
 // test_winner_email.php
 require_once "email-utility.php";
 
-$buyerEmail = "Testbuyer11@example.com";   // ← 改成你真实邮箱
-$buyerName  = "Testbuyer11@example.com";
+$buyerEmail = "buyer@test.com";   // ← 改成你真实邮箱
+$buyerName  = "buyer";
 
-$itemName   = "Test9";
-$finalPrice = "&pound;50";
+$itemName   = "toy2";
+$finalPrice = "&pound;30";
 
 $subject = "Congratulations! You won the auction for {$itemName}";
 

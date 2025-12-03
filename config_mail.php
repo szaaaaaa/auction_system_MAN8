@@ -1,8 +1,7 @@
 <?php
-// Mailtrap SMTP configuration
-$mailHost = "sandbox.smtp.mailtrap.io";
-$mailPort = 2525;
-$mailUsername = "e7565ce8c5df9f";
-$mailPassword = "3e4ab884f11203";
-$mailFrom = "auction@test.com";
-?>
+// Mailtrap SMTP 配置
+$host     = 'sandbox.smtp.mailtrap.io';
+$username = 'a746c6799d4dea';      // 你的 Username
+$password = '8e0cc0f742f447';  // 那行星号点复制
+$port     = 2525;                  // 建议用 2525
+
